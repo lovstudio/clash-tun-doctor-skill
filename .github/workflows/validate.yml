@@ -11,4 +11,4 @@ jobs:
   validate:
     uses: skill-publisher/dev-skills/.github/workflows/validate-skill.yml@main
     with:
-      skill_name: sgc-clash-tun-doctor
+      skill_name: lov-clash-tun-doctor
