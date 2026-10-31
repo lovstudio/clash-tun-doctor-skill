@@ -14,6 +14,8 @@ connections, and recent logs. Source subscription settings alone are not proof.
 | A GFW-blocked domain (`chatgpt.com`, `openai.com`) fails with `context deadline exceeded` or connection reset through a `type: http` "本机直连" residential node that has no `dialer-proxy`; other domains work through the same node, and the same exit works once chained behind an encrypted `dialer-proxy` relay | The HTTP proxy's `CONNECT host:443` request crosses the border in plaintext, so the GFW injects RST or drops packets by host | Confirm with an unauthenticated CONNECT from the physical interface (see below), then select the node variant with an encrypted `dialer-proxy` relay; do not rotate the exit IP or add DIRECT rules |
 | `diagnose` prints `Recent logs: UNAVAILABLE` with `Permission denied` on `clash-verge-service/users/<uid>/logs` | Service-mode core logs are root-only; the counts are unknown, not zero | Rerun with `--live-logs 15` while reproducing the failure, or let the user run the printed `sudo tail` command |
 | `diagnose` exits with `Cannot reach the Mihomo controller Unix socket` | Core not running, or its controller socket is somewhere unexpected | Read only the socket path from the running core (`pgrep -lf mihomo \| grep -o -- '-ext-ctl-unix [^ ]*'`; the full command line may carry `-secret`) and pass it with `--socket`; never report runtime state as healthy without it |
+| `direct-list --apply` reports `HTTP 400: path is not subpath of home directory or SAFE_PATHS ... allowed paths: [.../clash-verge-service/users/<uid>/runtime]` | The owner-scoped service core reloads config paths only from its root-owned runtime directory or `SAFE_PATHS`; the user-writable data-dir `clash-verge.yaml` is outside both | Since v0.6.0 the skill hot-loads service-mode cores by `payload` with `external-controller-unix` pinned to the live socket, and retries any SAFE_PATHS refusal that way. Older copies saved the rules without loading them: upgrade, then rerun the same `direct-list --apply` (idempotent). Never copy configs into the runtime directory or relaunch the core with a wider `SAFE_PATHS` |
+| `direct-list --apply` exits 2 with `Selector choices changed` | The forced reload rebuilt Selector groups; Mihomo restores their picks only when `profile.store-selected` is `true` | The new rules are already active: re-select the listed nodes in Clash Verge and check `profile.store-selected` in the generated `clash-verge.yaml` before the next hot-load |
 
 ## Plaintext HTTP proxy blocked by CONNECT host
 
@@ -65,7 +67,9 @@ python3 scripts/clash_tun_doctor.py direct-list \
 The generated list keeps explicit hosts and hosts observed through a non-DIRECT
 route. Evidence seen only through `DIRECT` stays outside the explicit list.
 Review `missing_rules`, then add `--apply` to merge, back up, hot-load, and
-verify the rules without quitting Clash Verge.
+verify the rules without quitting Clash Verge. A refused hot-load restores the
+files and prints Mihomo's own error; service-mode cores are always hot-loaded
+by payload (see the SAFE_PATHS row above).
 
 ## Proven WeChat repair
 
