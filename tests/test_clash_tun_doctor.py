@@ -109,9 +109,10 @@ class _MockMihomo(http.server.BaseHTTPRequestHandler):
             return
         text = request.get("payload") or Path(request["path"]).read_text(encoding="utf-8")
         state["rules"] = re.findall(r"(?m)^- DOMAIN,([^,\s]+),(\w+)$", text)
-        state["proxies"]["Auto"]["now"] = "SG"  # URLTest groups re-pick after a reload
+        state["proxies"]["Auto"]["now"] = "SG"  # unpinned automatic groups re-pick
         if state.get("reset_choice"):
             state["proxies"]["Proxy"]["now"] = "DIRECT"
+            state["proxies"]["Pinned"].update(now="JP", fixed="")
         self.reply(204)
 
     def log_message(self, *_args):
@@ -522,7 +523,8 @@ class ReloadTests(_UnixSocketTestCase):
             "rules": [],
             "proxies": {
                 "Proxy": {"type": "Selector", "now": "HK"},
-                "Auto": {"type": "URLTest", "now": "JP"},
+                "Auto": {"type": "Fallback", "now": "JP", "fixed": ""},
+                "Pinned": {"type": "URLTest", "now": "US", "fixed": "US"},
             },
         }
         state.update(options)
@@ -550,7 +552,7 @@ class ReloadTests(_UnixSocketTestCase):
         verification = result["verification"]
         self.assertEqual(verification["socket"], str(socket_path))
         self.assertEqual(verification["missing_direct_hosts"], [])
-        # Only Selector picks count; the URLTest group re-picked during the reload.
+        # The unpinned Fallback re-picked during the reload; that is not a user choice.
         self.assertEqual(verification["selection_changes"], [])
         self.assertTrue(result["runtime_verified"])
         self.assertIn("DOMAIN,apply.example.com,DIRECT", self.rules_file.read_text(encoding="utf-8"))
@@ -615,7 +617,7 @@ class ReloadTests(_UnixSocketTestCase):
         self.assertIn("timed out", attempt["error"])
         self.assertNotIn("apply.example.com", self.rules_file.read_text(encoding="utf-8"))
 
-    def test_changed_selector_choice_fails_verification(self):
+    def test_lost_group_choice_fails_verification(self):
         socket_path, _state = self.controller(self.SERVICE_SOCKET, reset_choice=True)
         code, result = self.apply(socket_path)
 
@@ -624,9 +626,12 @@ class ReloadTests(_UnixSocketTestCase):
         self.assertFalse(result["runtime_verified"])
         self.assertEqual(
             result["verification"]["selection_changes"],
-            [{"group": "Proxy", "before": "HK", "after": "DIRECT"}],
+            [
+                {"group": "Pinned", "before": "US", "after": None},
+                {"group": "Proxy", "before": "HK", "after": "DIRECT"},
+            ],
         )
-        self.assertIn("Proxy: HK -> DIRECT", result["reason"])
+        self.assertIn("Group choices changed: Pinned: US -> None, Proxy: HK -> DIRECT.", result["reason"])
         self.assertEqual(result["restored_files"], [])
 
 

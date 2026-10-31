@@ -1,6 +1,6 @@
 # Clash 网络医生 · Clash Network Doctor
 
-![Version](https://img.shields.io/badge/version-0.6.0-CC785C)
+![Version](https://img.shields.io/badge/version-0.6.1-CC785C)
 
 基于最终运行态、实时连接和日志证据，诊断并修复 Clash Verge Rev TUN 导致的应用联网故障。
 
@@ -73,7 +73,7 @@ python3 "$SKILL_DIR/scripts/clash_tun_doctor.py" rollback --apply
 - DIRECT 清单与现有 `prepend` 合并，不覆盖用户已有规则。
 - 规则型修复通过 Mihomo Unix Socket 热加载，Clash Verge 保持运行；服务模式下以 payload 热加载，被 Mihomo 拒绝时还原文件并输出原始报错。
 - 不修改订阅 URL，不输出代理密钥或控制器 Secret。
-- 修复后检查最终配置和 Mihomo 运行态（规则、控制 socket、Selector 分组选择），而不是只检查源配置。
+- 修复后检查最终配置和 Mihomo 运行态（规则、控制 socket、Selector 选择与自动组的手动固定），而不是只检查源配置。
 
 ## Options
 

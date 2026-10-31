@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1] - 2026-10-31
+
+### Changed
+
+- reload 后的分组校验额外比较 fixed 非空的 URLTest/Fallback 组（用户手动固定的节点）；未固定的 URLTest/Fallback 每次 reload 都会自动重选，不参与比较，避免误报。问题文案由 Selector choices changed 改为 Group choices changed
+- SKILL.md 与 troubleshooting 补充：reload 前建立的连接会一直走旧链路直到断开，验证新规则只看 reload 后新出现的 /connections id，或先重启应用
+
 ## [0.6.0] - 2026-10-31
 
 ### Fixed

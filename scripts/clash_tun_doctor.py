@@ -821,16 +821,19 @@ def missing_direct_hosts(
         time.sleep(0.25)
 
 
-def selector_choices(socket_path: Path) -> Optional[Dict[str, Any]]:
-    """Current choice of every Selector group, or None when /proxies is unreadable."""
+def group_choices(socket_path: Path) -> Optional[Dict[str, Any]]:
+    """User-made picks (Selector proxies, URLTest/Fallback pins); None if /proxies fails."""
     payload = api_json(socket_path, "/proxies")
     if payload is None:
         return None
-    return {
-        name: item.get("now")
-        for name, item in payload.get("proxies", {}).items()
-        if item.get("type") == "Selector"
-    }
+    choices: Dict[str, Any] = {}
+    for name, item in payload.get("proxies", {}).items():
+        if item.get("type") == "Selector":
+            choices[name] = item.get("now")
+        elif item.get("type") in ("URLTest", "Fallback") and item.get("fixed"):
+            # Unpinned automatic groups re-pick on every reload; only a pin is a choice.
+            choices[name] = item.get("fixed")
+    return choices
 
 
 def pin_controller_socket(text: str, socket_path: Path) -> str:
@@ -889,7 +892,7 @@ def verify_reload(
     hosts: Iterable[str],
     choices_before: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Re-detect the controller, then check /rules and Selector choices after a reload."""
+    """Re-detect the controller, then check /rules and group choices after a reload."""
     socket_after = wait_for_runtime(data_dir, cli_socket)
     issues: List[str] = []
     report: Dict[str, Any] = {
@@ -907,9 +910,9 @@ def verify_reload(
     report["missing_direct_hosts"] = missing
     if missing:
         issues.append("Runtime /rules lack exact DOMAIN -> DIRECT for: " + ", ".join(missing) + ".")
-    choices_after = selector_choices(socket_after)
+    choices_after = group_choices(socket_after)
     if choices_before is None or choices_after is None:
-        issues.append("Could not read /proxies; Selector choices were not compared.")
+        issues.append("Could not read /proxies; group choices were not compared.")
         return report
     changes = [
         {"group": group, "before": before, "after": choices_after.get(group)}
@@ -919,7 +922,7 @@ def verify_reload(
     report["selection_changes"] = changes
     if changes:
         issues.append(
-            "Selector choices changed: "
+            "Group choices changed: "
             + ", ".join(f"{item['group']}: {item['before']} -> {item['after']}" for item in changes)
             + "."
         )
@@ -981,7 +984,7 @@ def apply_direct_list(
     if not reload_runtime:
         return 0, result
 
-    choices_before = selector_choices(socket_path)
+    choices_before = group_choices(socket_path)
     attempts = reload_generated_config(socket_path, generated_path, updated[generated_path])
     result["reload_attempts"] = attempts
     result["runtime_reloaded"] = attempts[-1]["ok"]

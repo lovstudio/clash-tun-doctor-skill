@@ -15,7 +15,7 @@ compatibility: >
   and --socket values.
 metadata:
   author: contributors
-  version: "0.6.0"
+  version: "0.6.1"
   tags: clash mihomo tun network diagnostics wechat macos
 ---
 
@@ -179,10 +179,16 @@ rerun `diagnose` to read the live rules before retrying.
 
 After an accepted reload, the command re-detects the controller socket in the
 Step 1 order, requires every listed host as an exact `DOMAIN -> DIRECT` rule in
-`/rules`, and requires every Selector group to keep its previous choice
-(URLTest/Fallback picks may move). Any failure sets `ok: false` and lists the
-problem in `verification.issues`; the files stay saved, so report the backup
-path and offer `rollback --apply` instead of claiming success.
+`/rules`, and requires every user choice to survive: each Selector's proxy and
+each pinned (`fixed` non-empty) URLTest/Fallback group. Unpinned URLTest and
+Fallback groups re-pick on every reload and are not compared. Any failure sets
+`ok: false` and lists the problem in `verification.issues`; the files stay
+saved, so report the backup path and offer `rollback --apply` instead of
+claiming success.
+
+Connections opened before the reload keep their old chain until they close.
+Judge the new rules only by connections that appear afterwards (`/connections`
+ids absent before the reload), or restart the affected application first.
 
 For the specialized WeChat IPv6 repair, run:
 
