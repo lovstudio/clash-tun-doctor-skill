@@ -1,6 +1,6 @@
 # Clash 网络医生 · Clash Network Doctor
 
-![Version](https://img.shields.io/badge/version-0.6.2-CC785C)
+![Version](https://img.shields.io/badge/version-0.6.3-CC785C)
 
 基于最终运行态、实时连接和日志证据，诊断并修复 Clash Verge Rev TUN 导致的应用联网故障。
 
@@ -17,7 +17,7 @@ Independent source repository, also distributed through [lovstudio/skills](https
 ## Install
 
 ```bash
-npx skills add lov-clash-tun-doctor -g -y
+npx lovstudio skills add clash-tun-doctor -g -y
 ```
 
 或使用 Claude Code 插件市场：
